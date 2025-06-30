@@ -40,7 +40,7 @@ func main() {
 	for i, pod := range pods.Items {
 		for _, podCondition := range pod.Status.Conditions {
 			if podCondition.Type == "Ready" {
-		fmt.Printf("Pod %d pod time info, annotations: %v: %v\n", i, podCondition.LastTransitionTime, pod.Annotations)
+				fmt.Printf("Pod %d pod time info, annotations: %v: %v\n", i, podCondition.LastTransitionTime, pod.Annotations)
 			}
 		}
 	}
