@@ -3,11 +3,12 @@ package config
 import (
 	"log/slog"
 	"os"
+	"strconv"
 )
 
 type Config struct {
 	TTLAnnotation        string
-	CheckIntervalSeconds string
+	CheckIntervalSeconds int
 }
 
 func ReadConfig() Config {
@@ -19,10 +20,11 @@ func ReadConfig() Config {
 		os.Exit(2)
 	}
 
-	config.CheckIntervalSeconds = os.Getenv("CHECK_INTERVAL_SECONDS")
-	if config.CheckIntervalSeconds == "" {
-		slog.Error("CHECK_INTERVAL_SECONDS env variable not set")
+	checkIntervalSecondsInt, err := strconv.Atoi(os.Getenv("CHECK_INTERVAL_SECONDS"))
+	if err != nil {
+		slog.Error("CHECK_INTERVAL_SECONDS env variable not set", "error", err.Error())
 		os.Exit(2)
 	}
+	config.CheckIntervalSeconds = checkIntervalSecondsInt
 	return config
 }
