@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/t1bur1an/k8s-pod-ttl-killer/config"
 	"github.com/t1bur1an/k8s-pod-ttl-killer/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -14,6 +15,8 @@ import (
 )
 
 func main() {
+	envConfig := config.ReadConfig()
+	fmt.Println(envConfig)
 	var kubeconfig *string
 	if home := homedir.HomeDir(); home != "" {
 		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
@@ -36,16 +39,9 @@ func main() {
 		panic(err.Error())
 	}
 	for _, pod := range pods.Items {
-		podReadyTimestamp, err := utils.GetPodReadyTime(pod)
-		if err != nil {
-			fmt.Printf("Pod %s not in ready state\n", pod.GetName())
-		} else {
-			ttl, err := utils.FilterAnnotations(pod.Annotations, "pod-killer-ttl")
-			if err != nil {
-				fmt.Printf("Pod %s got an error with annotations: %s\n", pod.GetName(), err.Error())
-			} else {
-				fmt.Printf("Pod %s pod time info, timestamp: %d, ttl: %d\n", pod.GetName(), podReadyTimestamp, ttl)
-			}
+		if utils.DeletePodCheck(pod) {
+			podContext := context.Background()
+			utils.DeletePod(clientset, pod, podContext)
 		}
 	}
 }
