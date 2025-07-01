@@ -40,6 +40,7 @@ func main() {
 	}
 	for _, pod := range pods.Items {
 		if utils.DeletePodCheck(pod) {
+			fmt.Printf("Found pod to delete %s namespace %s", pod.GetName(), pod.Namespace)
 			podContext := context.Background()
 			utils.DeletePod(clientset, pod, podContext)
 		}

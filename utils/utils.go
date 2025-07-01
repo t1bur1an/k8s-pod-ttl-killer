@@ -61,4 +61,5 @@ func DeletePod(clientset *kubernetes.Clientset, pod corev1.Pod, podContext conte
 	if err != nil {
 		panic(err)
 	}
+	fmt.Printf("Pod %s namespace %s deleted", pod.GetName(), pod.Namespace)
 }
