@@ -15,8 +15,7 @@ import (
 )
 
 func main() {
-	envConfig := config.ReadConfig()
-	fmt.Println(envConfig)
+	config.ReadConfig()
 	var kubeconfig *string
 	if home := homedir.HomeDir(); home != "" {
 		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
