@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -23,7 +24,8 @@ func FilterAnnotations(filterAnnotations map[string]string, targetAnnotation str
 			break
 		}
 	}
-	return outputDuration, errors.New("No valuable annotation found")
+	errMsg := fmt.Sprintf("No %s annotation was found", targetAnnotation)
+	return outputDuration, errors.New(errMsg)
 }
 
 func GetPodReadyTime(pod corev1.Pod) (int64, error) {
@@ -32,7 +34,7 @@ func GetPodReadyTime(pod corev1.Pod) (int64, error) {
 			return podCondition.LastTransitionTime.Unix(), nil
 		}
 	}
-	return time.Time{}.Unix(), errors.New("Pod is not ready")
+	return 0, errors.New("Pod is not ready")
 }
 
 func DeletePod(clientset kubernetes.Clientset, namespaceName string, podContext context.Context, containerName string) {
