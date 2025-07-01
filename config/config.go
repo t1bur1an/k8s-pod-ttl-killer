@@ -1,12 +1,13 @@
 package config
 
 import (
-	"fmt"
+	"log/slog"
 	"os"
 )
 
 type Config struct {
-	TTLAnnotation string
+	TTLAnnotation        string
+	CheckIntervalSeconds string
 }
 
 func ReadConfig() Config {
@@ -14,7 +15,13 @@ func ReadConfig() Config {
 
 	config.TTLAnnotation = os.Getenv("TTL_ANNOTATION")
 	if config.TTLAnnotation == "" {
-		fmt.Println("TTL_ANNOTATION env variable not set")
+		slog.Error("TTL_ANNOTATION env variable not set")
+		os.Exit(2)
+	}
+
+	config.CheckIntervalSeconds = os.Getenv("CHECK_INTERVAL_SECONDS")
+	if config.CheckIntervalSeconds == "" {
+		slog.Error("CHECK_INTERVAL_SECONDS env variable not set")
 		os.Exit(2)
 	}
 	return config

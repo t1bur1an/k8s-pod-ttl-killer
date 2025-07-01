@@ -2,8 +2,7 @@ package main
 
 import (
 	"context"
-	"flag"
-	"fmt"
+	"log/slog"
 	"path/filepath"
 
 	"github.com/t1bur1an/k8s-pod-ttl-killer/config"
@@ -16,15 +15,13 @@ import (
 
 func main() {
 	config.ReadConfig()
-	var kubeconfig *string
-	if home := homedir.HomeDir(); home != "" {
-		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-	} else {
-		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
+	var kubeconfig string
+	home := homedir.HomeDir()
+	if home != "" {
+		kubeconfig = filepath.Join(home, ".kube", "config")
 	}
-	flag.Parse()
 
-	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -39,7 +36,7 @@ func main() {
 	}
 	for _, pod := range pods.Items {
 		if utils.DeletePodCheck(pod) {
-			fmt.Printf("Found pod to delete %s namespace %s", pod.GetName(), pod.Namespace)
+			slog.Info("Found pod to delete %s namespace %s", pod.GetName(), pod.Namespace)
 			podContext := context.Background()
 			utils.DeletePod(clientset, pod, podContext)
 		}

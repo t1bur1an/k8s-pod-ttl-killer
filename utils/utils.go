@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"time"
 
@@ -42,15 +43,18 @@ func DeletePodCheck(pod corev1.Pod) bool {
 	envConfig := config.ReadConfig()
 	ttl, err := FilterAnnotations(pod.Annotations, envConfig.TTLAnnotation)
 	if err != nil {
-		fmt.Printf("Pod %s got an error with annotations: %s\n", pod.GetName(), err.Error())
 		return false
 	}
 	podReadyTimestamp, err := GetPodReadyTimestamp(pod)
 	if err != nil {
-		fmt.Printf("Pod %s not in ready state\n", pod.GetName())
+		slog.Info("Not in ready state", "pod", pod.GetName())
 		return false
 	}
-	fmt.Printf("Pod %s pod time info, timestamp: %d, ttl: %d\n", pod.GetName(), podReadyTimestamp, ttl)
+	slog.Info(
+		"Pod time info",
+		"pod", pod.GetName(),
+		"podReadyTimestamp",
+		podReadyTimestamp, "ttl", ttl)
 
 	utcTimeNow := time.Now().UTC().Unix()
 	return (podReadyTimestamp + ttl) >= utcTimeNow
@@ -61,5 +65,7 @@ func DeletePod(clientset *kubernetes.Clientset, pod corev1.Pod, podContext conte
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("Pod %s namespace %s deleted", pod.GetName(), pod.Namespace)
+	slog.Info("Deleted",
+		"pod", pod.GetName(),
+		"namespace", pod.Namespace)
 }
