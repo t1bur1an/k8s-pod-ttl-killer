@@ -10,6 +10,7 @@ import (
 	"github.com/t1bur1an/k8s-pod-ttl-killer/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 )
@@ -19,15 +20,19 @@ func main() {
 	var kubeconfig string
 	home := homedir.HomeDir()
 	if home != "" {
-		kubeconfig = filepath.Join(home, ".kube", "config")
+		kubeconfig, err := clientcmd.BuildConfigFromFlags("", filepath.Join(home, ".kube", "config"))
+		if err != nil {
+			panic(err.Error())
+		}
+	} else {
+		kubeconfig, err := rest.InClusterConfig()
+		if err != nil {
+			panic(err)
+		}
 	}
 
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		panic(err.Error())
-	}
 
-	clientset, err := kubernetes.NewForConfig(config)
+	clientset, err := kubernetes.NewForConfig(kubeconfig)
 	if err != nil {
 		panic(err.Error())
 	}
