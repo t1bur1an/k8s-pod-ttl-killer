@@ -60,7 +60,7 @@ jobs:
           push: true
           build-args: |
             BIN_FILE=${{ENV.SVC_BIN_OUT_FILE}}
-          tags: latest
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Generate artifact attestation
