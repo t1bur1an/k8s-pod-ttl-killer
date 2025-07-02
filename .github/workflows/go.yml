@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         os: [linux]
-        arch: [amd64, arm64, riscv, riscv64]
+        arch: [amd64, arm64]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,7 +22,7 @@ jobs:
         env:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
-          SVC_BIN_OUT_FILE: ${{ github.event.repository.name }}-${{env.GOOS}}-${{env.GOARCH}}
+          SVC_BIN_OUT_FILE: ${{ github.event.repository.name }}-${{ matrix.os }}-${{ matrix.arch }}
         run: go build -o ${{env.SVC_BIN_OUT_FILE}} main.go
       - uses: actions/upload-artifact@v4
         with:
