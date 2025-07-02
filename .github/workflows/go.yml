@@ -25,6 +25,8 @@ jobs:
           SVC_BIN_OUT_FILE: ${{ github.event.repository.name }}-${{ matrix.os }}-${{ matrix.arch }}
         run: go build -o ${{env.SVC_BIN_OUT_FILE}} main.go
       - uses: actions/upload-artifact@v4
+        env:
+          SVC_BIN_OUT_FILE: ${{ github.event.repository.name }}-${{ matrix.os }}-${{ matrix.arch }}
         with:
           name: ${{env.SVC_BIN_OUT_FILE}}
           path: ${{env.SVC_BIN_OUT_FILE}}
