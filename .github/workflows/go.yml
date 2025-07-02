@@ -4,7 +4,10 @@ on: [push]
 
 jobs:
   build:
-
+    strategy:
+      matrix:
+        os: [linux]
+        arch: [amd64, arm64, riscv, riscv64]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,4 +19,12 @@ jobs:
       - name: Install dependencies
         run: go get .
       - name: Build
-        run: go build -v ./...
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+          SVC_BIN_OUT_FILE: ${{ github.event.repository.name }}-${{env.GOOS}}-${{env.GOARCH}}
+        run: go build -o ${{env.SVC_BIN_OUT_FILE}} main.go
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{env.SVC_BIN_OUT_FILE}}
+          path: ${{env.SVC_BIN_OUT_FILE}}
