@@ -17,20 +17,21 @@ import (
 
 func main() {
 	envConfig := config.ReadConfig()
-	var kubeconfig string
-	home := homedir.HomeDir()
-	if home != "" {
-		kubeconfig, err := clientcmd.BuildConfigFromFlags("", filepath.Join(home, ".kube", "config"))
-		if err != nil {
-			panic(err.Error())
-		}
-	} else {
-		kubeconfig, err := rest.InClusterConfig()
-		if err != nil {
-			panic(err)
+	slog.Info("Try to read InClusterConfig")
+	kubeconfig, err := rest.InClusterConfig()
+	if err != nil {
+		slog.Error("InClusterConfig", "error", err.Error())
+	}
+	if kubeconfig == nil {
+		slog.Info("Try to read kube config")
+		home := homedir.HomeDir()
+		if home != "" {
+			kubeconfig, err = clientcmd.BuildConfigFromFlags("", filepath.Join(home, ".kube", "config"))
+			if err != nil {
+				panic(err.Error())
+			}
 		}
 	}
-
 
 	clientset, err := kubernetes.NewForConfig(kubeconfig)
 	if err != nil {
