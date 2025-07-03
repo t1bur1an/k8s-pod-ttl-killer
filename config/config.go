@@ -9,6 +9,8 @@ import (
 type Config struct {
 	TTLAnnotation        string
 	CheckIntervalSeconds int
+	HTTPListenAddress string
+	HTTPListenPort       string
 }
 
 func ReadConfig() Config {
@@ -26,5 +28,18 @@ func ReadConfig() Config {
 		os.Exit(2)
 	}
 	config.CheckIntervalSeconds = checkIntervalSecondsInt
+
+	config.HTTPListenPort = os.Getenv("HTTP_LISTEN_PORT")
+	if config.HTTPListenPort == "" {
+		slog.Error("HTTP_LISTEN_PORT env variable not set")
+		os.Exit(2)
+	}
+
+	config.HTTPListenAddress = os.Getenv("HTTP_LISTEN_ADDRESS")
+	if config.HTTPListenAddress == "" {
+		slog.Error("HTTP_LISTEN_ADDRESS env variable not set")
+		os.Exit(2)
+	}
+
 	return config
 }

@@ -1,14 +1,14 @@
 package main
 
 import (
-	"context"
+	"fmt"
 	"log/slog"
+	"net/http"
+	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/t1bur1an/k8s-pod-ttl-killer/config"
-	"github.com/t1bur1an/k8s-pod-ttl-killer/utils"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/t1bur1an/k8s-pod-ttl-killer/k8s"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -37,20 +37,24 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
-	for {
-		slog.Info("Check cluster pods: started")
-		pods, err := clientset.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{})
-		if err != nil {
-			panic(err.Error())
-		}
-		for _, pod := range pods.Items {
-			if utils.DeletePodCheck(pod) {
-				slog.Info("Pod to delete", "pod", pod.GetName(), "namespace", pod.Namespace)
-				podContext := context.Background()
-				utils.DeletePod(clientset, pod, podContext)
-			}
-		}
-		slog.Info("Check cluster pods: done", "clusterPodsCount", len(pods.Items))
-		time.Sleep(time.Duration(envConfig.CheckIntervalSeconds)*time.Second)
+
+	go k8s.CheckClusterPodsPoll(clientset)
+
+	http.HandleFunc("/healthcheck", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "ok")
+	})
+
+	httpListenString := fmt.Sprintf(
+		"%s:%s",
+		envConfig.HTTPListenAddress,
+		envConfig.HTTPListenPort)
+	slog.Info(
+		"Starting http server",
+		"address", envConfig.HTTPListenAddress,
+		"port", envConfig.HTTPListenPort)
+	err = http.ListenAndServe(httpListenString, nil)
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(2)
 	}
 }
