@@ -1,9 +1,9 @@
 FROM scratch
 
-ARG ARG_BIN_FILE=k8s-pod-ttl-killer
+ARG BIN_FILE=k8s-pod-ttl-killer
 
-ENV ENV_BIN_FILE=$ARG_BIN_FILE
+ENV ENV_BIN_FILE=$BIN_FILE
 
-ADD ${ARG_BIN_FILE} /
+ADD ${BIN_FILE} /
 
 ENTRYPOINT ["/${ENV_BIN_FILE}"]
