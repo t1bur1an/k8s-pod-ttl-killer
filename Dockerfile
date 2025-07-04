@@ -1,9 +1,9 @@
-FROM scratch
+FROM busybox:latest
 
 ARG BIN_FILE=k8s-pod-ttl-killer
 
-ENV ENV_BIN_FILE=$BIN_FILE
+WORKDIR /app
 
-ADD ${BIN_FILE} /
+COPY ${BIN_FILE} ./svc
 
-ENTRYPOINT ${ENV_BIN_FILE}
+ENTRYPOINT ["./svc"]
