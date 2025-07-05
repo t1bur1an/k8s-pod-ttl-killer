@@ -19,6 +19,12 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
+env:
+  ttl_annotation: k8s-pod-ttl-killer
+  check_interval_seconds: 60
+  http_listen_port: 80
+  http_listen_address: 0.0.0.0
+
 # This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
 serviceAccount:
   # Specifies whether a service account should be created
@@ -44,7 +50,7 @@ podSecurityContext: {}
 securityContext: {}
   # capabilities:
   #   drop:
-  #   - ALL
+  # - ALL
   # readOnlyRootFilesystem: true
   # runAsNonRoot: true
   # runAsUser: 1000
@@ -88,11 +94,11 @@ resources: {}
 # This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
 livenessProbe:
   httpGet:
-    path: /
+    path: /healthcheck
     port: http
 readinessProbe:
   httpGet:
-    path: /
+    path: /healthcheck
     port: http
 
 # This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
