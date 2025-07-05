@@ -3,6 +3,7 @@ module github.com/t1bur1an/k8s-pod-ttl-killer
 go 1.24.4
 
 require (
+	github.com/codingconcepts/env v0.0.0-20240618133406-5b0845441187
 	k8s.io/api v0.33.2
 	k8s.io/apimachinery v0.33.2
 	k8s.io/client-go v0.33.2
