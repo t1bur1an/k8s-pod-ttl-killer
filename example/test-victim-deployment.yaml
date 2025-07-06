@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ttl-killer-victim-deployment
+  labels:
+    app: ttl-killer-victim
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ttl-killer-victim
+  template:
+    metadata:
+      labels:
+        app: ttl-killer-victim
+      annotations:
+        k8s-pod-ttl-killer: "60"
+    spec:
+      containers:
+      - name: ttl-killer-victim
+        image: busybox:latest
+        command: ["sleep", "3600"]
