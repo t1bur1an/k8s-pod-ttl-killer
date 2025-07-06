@@ -24,10 +24,16 @@ If ReadyTime+annotation seconds >= now() service would kill the pod by sending `
 
 To play around with service there is `example` folder contains manifest file with example pod with annotation. Service would find it easy and kill without any problems.
 
-Service can be also runned out of PC without and use personal `.kube/config` file by default.
+Service can be also runned out of PC and will use personal `.kube/config` file by default.
 
 In kubernetes it uses kubernetes API with Service Account.
 
 ## Helm
 
 Service can be started in cluster by helm chart. It will start one instance of service and create all needed resources like ClusterRole and ClusterRoleBinding to project Service Account.
+
+All values include environment variables for kubernetes service can be found in `helm/k8s-pod-killer/values.yaml` file.
+
+## Monitoring
+
+Service contains `/metrics` endpoint for prometheus. Also there is a custom metric `pods_deleted` which contains counter with deleted pods vectorized by a namespace and annotation values.
