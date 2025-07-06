@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -12,7 +13,29 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 )
+
+func GetKubeConfig() (*rest.Config, error) {
+	slog.Info("Try to read InClusterConfig")
+	kubeconfig, err := rest.InClusterConfig()
+	if err != nil {
+		slog.Error("InClusterConfig", "error", err.Error())
+	}
+	if kubeconfig == nil {
+		slog.Info("Try to read kube config")
+		home := homedir.HomeDir()
+		if home != "" {
+			kubeconfig, err = clientcmd.BuildConfigFromFlags("", filepath.Join(home, ".kube", "config"))
+			if err != nil {
+				panic(err.Error())
+			}
+		}
+	}
+	return kubeconfig, nil
+}
 
 func CheckClusterPodsPoll(clientset *kubernetes.Clientset) {
 	envConfig := config.ReadConfig()

@@ -5,32 +5,19 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"path/filepath"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/t1bur1an/k8s-pod-ttl-killer/config"
 	"github.com/t1bur1an/k8s-pod-ttl-killer/k8s"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 )
 
 func main() {
 	envConfig := config.ReadConfig()
-	slog.Info("Try to read InClusterConfig")
-	kubeconfig, err := rest.InClusterConfig()
+	kubeconfig, err := k8s.GetKubeConfig()
 	if err != nil {
-		slog.Error("InClusterConfig", "error", err.Error())
-	}
-	if kubeconfig == nil {
-		slog.Info("Try to read kube config")
-		home := homedir.HomeDir()
-		if home != "" {
-			kubeconfig, err = clientcmd.BuildConfigFromFlags("", filepath.Join(home, ".kube", "config"))
-			if err != nil {
-				panic(err.Error())
-			}
-		}
+		slog.Error("Error to get kube config")
+		os.Exit(2)
 	}
 
 	clientset, err := kubernetes.NewForConfig(kubeconfig)
@@ -48,6 +35,10 @@ func main() {
 		"%s:%s",
 		envConfig.HTTPListenAddress,
 		envConfig.HTTPListenPort)
+
+	// add prometheus metrics
+	http.Handle("/metrics", promhttp.Handler())
+
 	slog.Info(
 		"Starting http server",
 		"address", envConfig.HTTPListenAddress,
