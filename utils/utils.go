@@ -23,7 +23,7 @@ func FilterAnnotations(filterAnnotations map[string]string, targetAnnotation str
 				return 0, err
 			}
 			outputDuration = int64(intValue)
-			break
+			return outputDuration, nil
 		}
 	}
 	errMsg := fmt.Sprintf("No %s annotation was found", targetAnnotation)
@@ -50,14 +50,18 @@ func DeletePodCheck(pod corev1.Pod) bool {
 		slog.Info("Not in ready state", "pod", pod.GetName())
 		return false
 	}
-	slog.Info(
-		"Pod time info",
-		"pod", pod.GetName(),
-		"podReadyTimestamp",
-		podReadyTimestamp, "ttl", ttl)
-
 	utcTimeNow := time.Now().UTC().Unix()
-	return (podReadyTimestamp + ttl) >= utcTimeNow
+	slog.Info(
+		"Pod:",
+		"pod", pod.GetName(),
+		"annotation", envConfig.TTLAnnotation,
+		"value", ttl,
+		"podReadyTimestamp",
+		podReadyTimestamp,
+		"ttl", ttl,
+		"utcTimeNow", utcTimeNow)
+
+	return (podReadyTimestamp + ttl) <= utcTimeNow
 }
 
 func DeletePod(clientset *kubernetes.Clientset, pod corev1.Pod, podContext context.Context) {
