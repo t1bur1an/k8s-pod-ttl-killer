@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/t1bur1an/k8s-pod-ttl-killer/config"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,6 +18,15 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+)
+
+var (
+	PodsDeleted = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "pods_deleted",
+		Help: "The total number of deleted pods",
+	},
+		[]string{"namespace", "annotation"})
+	envConfig = config.ReadConfig()
 )
 
 func GetKubeConfig() (*rest.Config, error) {
@@ -38,7 +49,6 @@ func GetKubeConfig() (*rest.Config, error) {
 }
 
 func CheckClusterPodsPoll(clientset *kubernetes.Clientset) {
-	envConfig := config.ReadConfig()
 	for {
 		slog.Info("Check cluster pods: started")
 		pods, err := clientset.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{})
@@ -88,6 +98,7 @@ func DeletePodCheck(pod corev1.Pod) bool {
 	if err != nil {
 		return false
 	}
+
 	podReadyTimestamp, err := GetPodReadyTimestamp(pod)
 	if err != nil {
 		slog.Info("Not in ready state", "pod", pod.GetName())
@@ -115,4 +126,5 @@ func DeletePod(clientset *kubernetes.Clientset, pod corev1.Pod, podContext conte
 	slog.Info("Deleted",
 		"pod", pod.GetName(),
 		"namespace", pod.Namespace)
+	PodsDeleted.WithLabelValues(pod.Namespace, envConfig.TTLAnnotation).Inc()
 }
