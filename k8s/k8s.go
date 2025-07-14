@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"path/filepath"
+	"os"
 	"strconv"
 	"time"
 
@@ -17,7 +17,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 )
 
 var (
@@ -30,21 +29,24 @@ var (
 )
 
 func GetKubeConfig() (*rest.Config, error) {
-	slog.Info("Try to read InClusterConfig")
+	slog.Info("Trying to read InClusterConfig")
 	kubeconfig, err := rest.InClusterConfig()
+	if err == nil {
+		return kubeconfig, nil
+	}
+	slog.Warn("InClusterConfig failed", "error", err.Error())
+
+	kubeconfigPath := os.Getenv("KUBECONFIG")
+	if kubeconfigPath == "" {
+		return nil, err // InClusterConfig не работает и KUBECONFIG не задан
+	}
+
+	slog.Info("Trying to load kubeconfig from KUBECONFIG env", "path", kubeconfigPath)
+	kubeconfig, err = clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 	if err != nil {
-		slog.Error("InClusterConfig", "error", err.Error())
+		panic(err.Error())
 	}
-	if kubeconfig == nil {
-		slog.Info("Try to read kube config")
-		home := homedir.HomeDir()
-		if home != "" {
-			kubeconfig, err = clientcmd.BuildConfigFromFlags("", filepath.Join(home, ".kube", "config"))
-			if err != nil {
-				panic(err.Error())
-			}
-		}
-	}
+
 	return kubeconfig, nil
 }
 
@@ -53,15 +55,20 @@ func CheckClusterPodsPoll(clientset *kubernetes.Clientset) {
 		slog.Info("Check cluster pods: started")
 		pods, err := clientset.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
-			panic(err.Error())
+			slog.Error("Failed to list pods", "error", err)
+			continue
 		}
+
 		for _, pod := range pods.Items {
 			if DeletePodCheck(pod) {
 				slog.Info("Pod to delete", "pod", pod.GetName(), "namespace", pod.Namespace)
 				podContext := context.Background()
-				DeletePod(clientset, pod, podContext)
+				if err := DeletePod(podContext, clientset, &pod, envConfig.TTLAnnotation); err != nil {
+					slog.Error("Failed to delete pod", "pod", pod.GetName(), "namespace", pod.Namespace, "error", err)
+				}
 			}
 		}
+
 		slog.Info("Check cluster pods: done", "clusterPodsCount", len(pods.Items))
 		time.Sleep(time.Duration(envConfig.CheckIntervalSeconds) * time.Second)
 	}
@@ -118,13 +125,18 @@ func DeletePodCheck(pod corev1.Pod) bool {
 	return (podReadyTimestamp + ttl) <= utcTimeNow
 }
 
-func DeletePod(clientset *kubernetes.Clientset, pod corev1.Pod, podContext context.Context) {
-	err := clientset.CoreV1().Pods(pod.Namespace).Delete(podContext, pod.GetName(), *metav1.NewDeleteOptions(0))
+func DeletePod(ctx context.Context, clientset *kubernetes.Clientset, pod *corev1.Pod, ttlAnnotation string) error {
+	err := clientset.CoreV1().Pods(pod.Namespace).Delete(ctx, pod.Name, metav1.DeleteOptions{})
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to delete pod %s/%s: %w", pod.Namespace, pod.Name, err)
 	}
-	slog.Info("Deleted",
-		"pod", pod.GetName(),
-		"namespace", pod.Namespace)
-	PodsDeleted.WithLabelValues(pod.Namespace, envConfig.TTLAnnotation).Inc()
+
+	slog.Info("Deleted pod",
+		"namespace", pod.Namespace,
+		"name", pod.Name,
+		"reason", "TTL expired",
+	)
+
+	PodsDeleted.WithLabelValues(pod.Namespace, ttlAnnotation).Inc()
+	return nil
 }
