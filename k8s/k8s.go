@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 )
 
 var (
@@ -37,17 +39,27 @@ func GetKubeConfig() (*rest.Config, error) {
 	slog.Warn("InClusterConfig failed", "error", err.Error())
 
 	kubeconfigPath := os.Getenv("KUBECONFIG")
-	if kubeconfigPath == "" {
-		return nil, err // InClusterConfig не работает и KUBECONFIG не задан
+	if kubeconfigPath != "" {
+		slog.Info("Trying to load kubeconfig from KUBECONFIG env", "path", kubeconfigPath)
+		kubeconfig, err = clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+		if err == nil {
+			return kubeconfig, nil
+		}
+		slog.Warn("Failed to load kubeconfig from KUBECONFIG", "error", err.Error())
 	}
 
-	slog.Info("Trying to load kubeconfig from KUBECONFIG env", "path", kubeconfigPath)
-	kubeconfig, err = clientcmd.BuildConfigFromFlags("", kubeconfigPath)
-	if err != nil {
-		panic(err.Error())
+	slog.Info("Trying to load kubeconfig from default path ~/.kube/config")
+	home := homedir.HomeDir()
+	if home != "" {
+		kubeconfigPath = filepath.Join(home, ".kube", "config")
+		kubeconfig, err = clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+		if err == nil {
+			return kubeconfig, nil
+		}
+		slog.Warn("Failed to load kubeconfig from ~/.kube/config", "error", err.Error())
 	}
 
-	return kubeconfig, nil
+	return nil, fmt.Errorf("could not create a valid kube config from any source")
 }
 
 func CheckClusterPodsPoll(clientset *kubernetes.Clientset) {
